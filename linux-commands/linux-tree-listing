@@ -1,0 +1,71 @@
+#!/bin/bash
+# tree_sizes.sh - Show folder tree with sizes in MB
+
+# Use du to get sizes in MB, sorted, for all subdirectories
+du -m . 2>/dev/null | sort -k2 | awk -F'\t' '
+{
+    size=$1
+    path=$2
+    # Count depth by counting slashes
+    n=gsub(/\//, "/", path)
+    indent=""
+    for(i=0;i<n;i++) indent=indent "  "
+    # Get just the last folder name
+    split(path, parts, "/")
+    name=parts[length(parts)]
+    if (path == ".") name = "."
+    printf "%s%-40s %8d MB\n", indent, name, size
+}'
+
+#!/bin/bash
+# tree_sizes.sh - Show folder tree with sizes in MB, largest first
+
+du -m . 2>/dev/null | sort -k1 -rn | awk -F'\t' '
+{
+    size=$1
+    path=$2
+    n=gsub(/\//, "/", path)
+    indent=""
+    for(i=0;i<n;i++) indent=indent "  "
+    split(path, parts, "/")
+    name=parts[length(parts)]
+    if (path == ".") name = "."
+    printf "%s%-40s %8d MB\n", indent, name, size
+}'
+
+#!/bin/bash
+# tree_sizes.sh - Recursive folder tree, sorted by size descending at every level
+
+print_tree() {
+    local dir="$1"
+    local indent="$2"
+
+    # Get size + path for each direct subdirectory, sort by size descending
+    du -m --max-depth=1 "$dir" 2>/dev/null | sort -rn | while IFS=$'\t' read -r size path; do
+        # Skip the entry for the directory itself
+        [ "$path" = "$dir" ] && continue
+
+        name=$(basename "$path")
+        printf "%s%-40s %8d MB\n" "$indent" "$name" "$size"
+
+        # Recurse into subdirectory with deeper indent
+        print_tree "$path" "$indent  "
+    done
+}
+
+root="."
+root_size=$(du -sm "$root" 2>/dev/null | cut -f1)
+printf "%-40s %8d MB\n" "." "$root_size"
+print_tree "$root" "  "
+
+# How it works:
+
+# du -m --max-depth=1 on each directory gives only its direct children's sizes.
+# Sorting those by size descending, then recursing into each child in that order,
+# means every level of the tree is independently sorted biggest-first — not just the top.
+# It's genuinely recursive now (a function calling itself), 
+# so it'll be a bit slower on huge trees since each folder triggers its own du call, 
+# but for typical file organizing it should feel instant.
+
+# One thing to watch: folders with a lot of nesting will produce a long output. 
+#If you want, I can add a --max-depth argument to the script itself so you can cap how deep it goes.
