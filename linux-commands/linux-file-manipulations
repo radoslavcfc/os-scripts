@@ -1,0 +1,44 @@
+#!/bin/bash
+# rename_remove_substring.sh
+# Usage: ./rename_remove_substring.sh <directory> <substring_to_remove>
+
+set -euo pipefail
+
+DIR="${1:?Usage: $0 <directory> <substring>}"
+SUBSTR="${2:?Usage: $0 <directory> <substring>}"
+
+if [[ ! -d "$DIR" ]]; then
+    echo "Error: '$DIR' is not a directory" >&2
+    exit 1
+fi
+
+for file in "$DIR"/*; do
+    [[ -f "$file" ]] || continue  # skip dirs, non-existent globs
+
+    base="$(basename "$file")"
+    new_base="${base//$SUBSTR/}"
+
+    if [[ "$base" != "$new_base" ]]; then
+        new_path="$DIR/$new_base"
+        if [[ -e "$new_path" ]]; then
+            echo "Skipping '$base': target '$new_base' already exists" >&2
+            continue
+        fi
+        mv -- "$file" "$new_path"
+        echo "Renamed: '$base' -> '$new_base'"
+    fi
+done
+
+# Notes:
+# 
+# ${base//$SUBSTR/} removes all occurrences of the substring, not just the first. 
+# If you want only the first occurrence removed, use ${base/$SUBSTR/} (single slash).
+# It only touches regular files in that directory (not subdirectories), 
+# and skips renaming if the target filename already exists to avoid overwriting something.
+# If your substring might contain special regex-like characters, 
+# no issue — bash's ${var//pattern/} uses glob-style matching, 
+# and $SUBSTR here is treated literally as long as it doesn't contain *, ?, or [.
+
+# Usage example:
+chmod +x rename_remove_substring.sh
+./rename_remove_substring.sh /path/to/dir "_old"
