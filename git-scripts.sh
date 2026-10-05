@@ -19,3 +19,7 @@ git push
 
 #Deleting the nested .git also discards that folder's own history and remote link. If you want to keep it, back it up first or use a proper submodule instead:
 git submodule add <repo-url> course-secure-rest-api-oauth2-code
+
+
+#To avoid this next time you clone something into the folder, you can check first with:
+find . -name ".git" -not -path "./.git/*"
